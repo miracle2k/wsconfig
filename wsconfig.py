@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import sys
+import sys, os
+from os import path
 import yaml
 from subprocess import Popen, list2cmdline
 
@@ -28,13 +29,19 @@ class Plugin(object):
                 cls.PLUGINS[clazz.name] = clazz
             return clazz
 
+    def __init__(self, basedir):
+        self.basedir = basedir
+
     def run(self, arguments, raw_value, state):
         raise NotImplementedError()
 
-    def pexecute(self, cmdline, *a, **kw):
+    def log(self, str):
         print ""
-        print "====> $", list2cmdline(cmdline) \
-            if isinstance(cmdline, list) else cmdline
+        print "====>", str
+
+    def pexecute(self, cmdline, *a, **kw):
+        self.log("$ %s" % (list2cmdline(cmdline)
+                           if isinstance(cmdline, list) else cmdline))
         process = Popen(cmdline, *a, **kw)
         process.wait()
         if process.returncode != 0:
@@ -68,6 +75,38 @@ class ShellPlugin(Plugin):
 
     def run(self, arguments, raw_value, state):
         self.pexecute(raw_value, shell=True)
+
+
+class LinkPlugin(Plugin):
+    """Create a symbolic link.
+    """
+    name = 'link'
+
+    def run(self, arguments, raw_value, state):
+        src, dst = arguments
+        src, dst = path.join(self.basedir, src), path.join(self.basedir, dst)
+        link = path.relpath(src, path.dirname(dst))
+        self.log('link %s -> %s' % (link, dst))
+        try:
+            os.symlink(link, dst)
+        except OSError, e:
+            print e
+            return 1
+
+
+class MkdirPlugin(Plugin):
+    """Create one or more directories.
+    """
+    name = 'mkdir'
+
+    def run(self, arguments, raw_value, state):
+        for dir in arguments:
+            abspath = path.join(self.basedir, dir)
+            if not path.exists(abspath):
+                self.log('mkdir %s' % abspath)
+                os.makedirs(abspath)
+            else:
+                self.log('%s exists' % abspath)
 
 
 class RemindPlugin(Plugin):
@@ -175,6 +214,14 @@ def load_yaml(file, plugins):
     input = yaml.load(file if hasattr(file, 'read') else open(file, 'r'))
     assert isinstance(input, dict), "root must be a an associative array"
 
+    filename = None
+    if hasattr(file, 'name'):
+        filename = file.name
+    elif isinstance(file, basestring):
+        filename = file
+    basedir = path.curdir if not filename \
+        else path.abspath(path.dirname(filename))
+
     packages = {}
     for pkg_name, instructions in input.items():
         p = Package(pkg_name)
@@ -210,7 +257,7 @@ def load_yaml(file, plugins):
             except KeyError:
                 raise ConfigError('"%s" not a valid plugin' % instruction)
             else:
-                p.append((plugin_class(), arguments, raw_value))
+                p.append((plugin_class(basedir), arguments, raw_value))
         packages[p.name] = p
 
     # Resolve package references
