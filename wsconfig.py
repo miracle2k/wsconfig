@@ -264,6 +264,10 @@ def query_package(packages):
     return to_install, selected_optionals
 
 def main():
+    if len(sys.argv) != 2:
+        print "Usage: %s YAML_CONFIG_FILE" % path.basename(__file__)
+        return 1
+    
     # Parse the configuration file
     filename = sys.argv[1]
     packages = load_yaml(filename, Plugin.__class__.PLUGINS)
