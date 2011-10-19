@@ -15,7 +15,7 @@ This works with a YAML configuration file::
 
     _wine:
         - dpkg: wine
-        - wine: http://elsdoerfer.name/download/corporeal/corporeal-setup.exe
+        - wine: corporeal-setup.exe
 
     base:
         - <wine?>
