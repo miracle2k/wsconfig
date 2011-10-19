@@ -5,6 +5,13 @@ import yaml
 from subprocess import Popen, list2cmdline
 
 
+class ConfigError(Exception):
+    pass
+
+class ApplyError(Exception):
+    pass
+
+
 class Plugin(object):
     """Base class for a plugin, implementing a metaclass registry.
     """
@@ -30,6 +37,8 @@ class Plugin(object):
             if isinstance(cmdline, list) else cmdline
         process = Popen(cmdline, *a, **kw)
         process.wait()
+        if process.returncode != 0:
+            raise ApplyError('Process returns non-zero code: %s' % process.returncode)
 
 
 class DpkgPlugin(Plugin):
@@ -120,7 +129,19 @@ class Package(object):
                     package.run(optionals, state)
             else:
                 plugin, arguments, raw_value = i
-                plugin.run(arguments, raw_value, state)
+                try:
+                    result = plugin.run(arguments, raw_value, state)
+                    if result:
+                        raise ApplyError('Plugin failed.')
+                except ApplyError, e:
+                    print "%s" % e
+                    while True:
+                        yn = raw_input('Do you want to continue (y/n)? [y] ')
+                        if not yn in ('y', 'n', ''):
+                            continue
+                        if yn == 'n':
+                            sys.exit(1)
+                        break
 
     def get_optionals(self):
         """Recursively return all the possible optional packages.
@@ -142,10 +163,6 @@ class Package(object):
 
     def __iter__(self):
         return iter(self.instructions)
-
-
-class ConfigError(Exception):
-    pass
 
 
 def load_yaml(file, plugins):
