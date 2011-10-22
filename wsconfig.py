@@ -83,11 +83,23 @@ class LinkPlugin(Plugin):
     name = 'link'
 
     def run(self, arguments, raw_value, state):
+        force = False
+        if arguments[0] == '-f':
+            force = True
+            arguments = arguments[1:]
+
         src, dst = arguments
         src, dst = path.join(self.basedir, path.expanduser(src)), \
                    path.join(self.basedir, path.expanduser(dst))
         link = path.relpath(src, path.dirname(dst))
         self.log('link %s -> %s' % (link, dst))
+        # Maybe delete an existing target
+        if path.exists(dst) and force:
+            os.unlink(dst)
+        # Create directories as necessary
+        if not path.exists(path.dirname(dst)):
+            os.makedirs(path.dirname(dst))
+
         try:
             os.symlink(link, dst)
         except OSError, e:
