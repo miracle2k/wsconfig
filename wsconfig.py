@@ -94,8 +94,14 @@ class LinkPlugin(Plugin):
         link = path.relpath(src, path.dirname(dst))
         self.log('link %s -> %s' % (link, dst))
         # Maybe delete an existing target
-        if path.exists(dst) and force:
-            os.unlink(dst)
+        if path.exists(dst):
+            if force:
+                os.unlink(dst)
+            else:
+                # If the link already exists and points to the correct file, just move on
+                if path.normpath(path.join(path.dirname(dst), os.readlink(dst))) == \
+                        path.normpath(src):
+                    return
         # Create directories as necessary
         if not path.exists(path.dirname(dst)):
             os.makedirs(path.dirname(dst))

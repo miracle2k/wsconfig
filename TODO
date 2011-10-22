@@ -10,9 +10,7 @@ appropriate.
 
 link command: support globs to create multiple links.
 
-link command - better deal with links that already exist:
-    - don't show an error if the existing link has the correct target.
-    - document the -f switch (or someting different, it's ugly)
+link command - document the -f switch (or someting different, it's ugly)
 
 shell commands: cd into the yaml dir.
 
