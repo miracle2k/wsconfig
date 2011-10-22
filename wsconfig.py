@@ -84,7 +84,8 @@ class LinkPlugin(Plugin):
 
     def run(self, arguments, raw_value, state):
         src, dst = arguments
-        src, dst = path.join(self.basedir, src), path.join(self.basedir, dst)
+        src, dst = path.join(self.basedir, path.expanduser(src)), \
+                   path.join(self.basedir, path.expanduser(dst))
         link = path.relpath(src, path.dirname(dst))
         self.log('link %s -> %s' % (link, dst))
         try:
@@ -101,7 +102,7 @@ class MkdirPlugin(Plugin):
 
     def run(self, arguments, raw_value, state):
         for dir in arguments:
-            abspath = path.join(self.basedir, dir)
+            abspath = path.join(self.basedir, path.expanduser(dir))
             if not path.exists(abspath):
                 self.log('mkdir %s' % abspath)
                 os.makedirs(abspath)
