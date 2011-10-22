@@ -15,7 +15,7 @@ This works with a YAML configuration file::
 
     _wine:
         - dpkg: wine
-        - wine: corporeal-setup.exe
+        - shell: wine corporeal-setup.exe
 
     base:
         - <wine?>
