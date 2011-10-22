@@ -1,0 +1,20 @@
+Should this be based on fabric?
+
+$ shortcut for shell commands
+
+Don't require the full target filename with link, specifying a
+directory should be enough.
+
+link command should be smart enough to use absolute paths were
+appropriate.
+
+link command: support globs to create multiple links.
+
+link command - better deal with links that already exist:
+    - don't show an error if the existing link has the correct target.
+    - document the -f switch (or someting different, it's ugly)
+
+shell commands: cd into the yaml dir.
+
+What if we want to add a line to a file (echo >>), but only if it's
+not already in there?
