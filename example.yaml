@@ -1,0 +1,17 @@
+_wine:
+    - dpkg: wine
+    - shell: wine corporeal-setup.exe
+
+base:
+    - <wine?>
+    - dpkg: vim thunderbird
+    - remind: Configure custom monospace font
+    - link: forward ~/.forward
+    - link: ssh/config .ssh/config
+
+dev:
+    - <base>
+    - dpkg: git python-setuptools python-dev mercurial php5-cgi php5-xdebug
+    - shell: easy_install pip
+    - pip: virtualenv virtualenvwrapper bzr
+    - mkdir: ~/Development ~/Devopment/projects
