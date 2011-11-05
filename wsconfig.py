@@ -6,6 +6,9 @@ import yaml
 from subprocess import Popen, list2cmdline
 
 
+__version__ = ('0', '1')
+
+
 class ConfigError(Exception):
     pass
 
@@ -347,6 +350,7 @@ def query_package(packages):
 
     return to_install, selected_optionals
 
+
 def main():
     if len(sys.argv) != 2:
         print "Usage: %s YAML_CONFIG_FILE" % path.basename(__file__)
@@ -371,5 +375,8 @@ def main():
         callable(state)
 
 
-if __name__ == '__main__':
+def run():
     sys.exit(main() or 0)
+
+if __name__ == '__main__':
+    run()

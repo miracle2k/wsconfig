@@ -2,3 +2,7 @@
 
 /BRANCH_TODO
 /.idea/
+
+/build/
+/dist/
+*.egg-info/

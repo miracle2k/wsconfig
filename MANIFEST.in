@@ -1,0 +1,5 @@
+include *.rst
+include example.yaml
+include tests.py
+include MANIFEST.in
+include README
