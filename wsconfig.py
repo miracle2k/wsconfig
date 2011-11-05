@@ -99,7 +99,8 @@ class LinkPlugin(Plugin):
                 os.unlink(dst)
             else:
                 # If the link already exists and points to the correct file, just move on
-                if path.normpath(path.join(path.dirname(dst), os.readlink(dst))) == \
+                if path.islink(dst) and path.normpath(
+                      path.join(path.dirname(dst), os.readlink(dst))) == \
                         path.normpath(src):
                     return
         # Create directories as necessary
