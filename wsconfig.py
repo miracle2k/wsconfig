@@ -77,7 +77,12 @@ class ShellPlugin(Plugin):
     name = 'shell'
 
     def run(self, arguments, raw_value, state):
-        self.pexecute(raw_value, shell=True)
+        old_pwd = os.getcwdu()
+        os.chdir(self.basedir)
+        try:
+            self.pexecute(raw_value, shell=True)
+        finally:
+            os.chdir(old_pwd)
 
 
 class LinkPlugin(Plugin):

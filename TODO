@@ -12,7 +12,5 @@ link command: support globs to create multiple links.
 
 link command - document the -f switch (or someting different, it's ugly)
 
-shell commands: cd into the yaml dir.
-
 What if we want to add a line to a file (echo >>), but only if it's
 not already in there?
