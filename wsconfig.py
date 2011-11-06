@@ -45,7 +45,10 @@ class Plugin(object):
     def pexecute(self, cmdline, *a, **kw):
         self.log("$ %s" % (list2cmdline(cmdline)
                            if isinstance(cmdline, list) else cmdline))
-        process = Popen(cmdline, *a, **kw)
+        try:
+            process = Popen(cmdline, *a, **kw)
+        except OSError, e:
+            raise ApplyError('Failed to run: %s' % e)
         process.wait()
         if process.returncode != 0:
             raise ApplyError('Process returns non-zero code: %s' % process.returncode)
