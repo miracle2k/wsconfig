@@ -81,3 +81,9 @@ wine
 remind
     Remind yourself of some manual setup step. These will be collected and
     presented at the end of the script.
+    
+    
+Similar tools
+-------------
+
+https://github.com/technicalpickles/homesick
