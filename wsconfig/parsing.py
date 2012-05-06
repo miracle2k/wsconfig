@@ -63,6 +63,9 @@ items << ZeroOrMore(item)
 # A full document.
 root = items + StringEnd()
 
+# Support comments
+root.ignore(pythonStyleComment)
+
 
 ################################################################################
 ###### Constructing the AST

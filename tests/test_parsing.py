@@ -65,6 +65,38 @@ class TestParseBaseObjects(object):
         ]
 
 
+class TestParseComments(object):
+
+    def test_with_commands(self):
+        assert parse('after cmd    # bla''') == [Command(['after', 'cmd'])]
+        assert parse('''
+       # before cmd
+       cmd
+        ''') == [Command(['cmd'])]
+
+    def test_with_selectors(self):
+        assert parse('''
+       # before tag {}
+       cmd
+       ''') == [Command(['cmd'])]
+        assert parse('''
+       within { # }
+       }
+       ''') == [Selector(TagExpr(Or([And(['within'])])), [])]
+        assert parse('''
+       after { }  # x
+       cmd
+       ''') == [Selector(TagExpr(Or([And(['after'])])), []),
+                 Command(['cmd'])]
+
+    def test_eof(self):
+        """Test comment at the end of the file - we had some trouble with this.
+        """
+        assert parse('# bla') == []
+        assert parse('after { } # bla''') == [
+            Selector(TagExpr(Or([And(['after'])])), [])]
+
+
 class TestParseWhitespace(object):
     """Test parsing with respect to different whitespace usage (newlines
     before, after syntax elements etc).
