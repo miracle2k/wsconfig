@@ -75,22 +75,19 @@ thta way is not correct. They are really "if conditions", and the commands are
 guaranteed to run in the order they appear in the script file - i.e., first
 the commands in the ``python`` block, then those in the ``php`` block.
 
-However, you can think of ``DevEnvironment`` as a package, because the
-``define`` directives are special, processed in a separate pass, and must not
-be combined with other commands. i.e. the  following are both not valid::
+What's more, the ``define`` statements are executed sequentially as well, thus
+the following will not be want you want, because the ``define`` appears to late
+to have any actual effect::
 
-
-    tag {
-        define foo
-        dpkg screen
+    php {
+        dpkg php5-cli
     }
-    tag {
-        define foo
-        subtag { }
+    DevEnvironment {
+        define php
     }
 
 
-Yes, that's right, you can nest conditions::
+You can nest conditions::
 
     python {
         sys:linux { dpkg: python-setuptools }
@@ -170,12 +167,130 @@ piped directly to the shell::
     $ su -c "apt-get update"
 
 
-Tagging limitations
--------------------
+Tagging in-depth
+----------------
 
-There are some limitations to the tagging system.
+Here are some extended thoughts on the tagging system, and my thinking about
+it (currently still an ongoing process).
 
-The following is not allowed::
+Initially, the ``define`` command was considered out-of-sequence. It was being
+preprocessed such that the following worked as expected::
+
+    foo bar qux { remind "Stop drinking" }
+    bar { define qux }
+    foo { define bar }
+    define foo
+
+We would traverse the document until no new ``defines`` are activated, and then
+use all discovered tags as the starting set. However, this seemed kid of
+schizophrenic. The inclination would be to use it like this::
+
+    sys.linux {
+        ...
+        foo
+        ...
+
+        define chrome
+
+        ...
+    }
+
+I.e., as a sort of "call" or "include", with the ``chrome`` selector serving
+to encapsulate the relevant commands visually/structurally. And while the above
+does indeed work, even now, if the ``chrome`` block comes after it, the whole
+point of this supposing to be an include, is that it shouldn't matter where it
+is located in the file.
+But that's not really what ``define`` is. If above the ``foo`` command fails,
+and the script is aborted at this point, you'd expect a ``chrome`` block to not
+be processed. However, if ``defines`` are preprocessed as was the case, then
+such a block might have already run.
+
+So to combat that, I wanted to add restrictions on ``define``, such that they
+may only be used in selectors that have no other commands::
+
+    sys:linux {
+        define base-linux
+        define foo
+    }
+    Development {
+        define base-development
+        define python
+        define php
+    }
+
+
+It would be an artificial restriction intended to make things clearer, but as
+you can see, it leads to an entirely different style of writing config files.
+You'd be forced to put ALL commands within faux selectors (like ``base-linux``),
+which is ugly, while at best making the problem, that here is no longer a
+clear order of execution, only somewhat more bearable (if the above looks clear,
+think about a large file with sequential commands being intermixed with such
+packages.
+
+It just doesn't make sense to encourage using ``define`` as an inclusion
+concept, which is what preprocessing them in this way does. It's schizophrenic
+because it is confused about whether tag selectors are what the claim to be,
+"if conditions", or whether they should be viewed as "packages".
+
+Instead, if needed, a package concept could be introduced separately::
+
+    @chrome (
+        ...
+    )
+
+    sys:linux {
+        ....
+        @chrome  # Include the chrome package.
+    }
+
+The @()-syntax could indicate a package, NOT a selector, and they would only
+ever run when included (but only once). These could also have other uses, like
+indicating a "unit of execution", where errors would be caught, such that an
+error in the package causes subsequent statements in the package to be skipped,
+but further statements outside to be run.
+
+On the other hand, introducing a different type of syntax might already be too
+much. This is supposed to be simple after all. There is another potential
+solution: A multi-pass apply process. So if we take the example from before::
+
+    sys.linux {
+        ...
+        foo
+        ...
+
+        define chrome
+        ...
+    }
+
+Then ``chrome`` would not be preprocessed. If the script ends with ``foo``,
+then no ``chrome`` block will have run. Instead, code processing the document
+comes across the ``define`` only when ``foo`` has already run, and when it
+does, it schedules another document traverse. The second time, commands that
+have already run skipped, but commands newly unlocked by the tag are run now.
+
+This might be the perfect solution because:
+    - No extra syntax.
+    - The order in which commands run is not any more confusing then with @(),
+      and it could be used equally as effectively to structure code.
+    - It avoids the main conceptional issue with the original ``define`` -
+      that it was processed out-of-order.
+    - The @() syntax would need to implement code to avoid running multiple
+      times as well.
+    - It fixes the problem that defines have now, that they have no effect
+      if in the wrong order.
+
+----
+
+
+There's a further aspect that I'm currently not happy with. Take the following
+pieces of code::
+
+    DevEnviron {
+        Python {}
+        Php {}
+    }
+
+::
 
     DevEnviron {
         define python
@@ -184,30 +299,33 @@ The following is not allowed::
         Python3 {}
     }
 
-Neither is this::
+In both cases, only the ``DevEnviron`` tag will be presented as a choice.
+Why? ``wsconfig`` would either have to indiscriminately present all such tags
+as choices, as a flat list, without recognizing the dependencies, even though,
+in the first example, defining ``Python`` has no effect without also defining
+``DevEnviron`` (this could be an optional ``--all`` switch).
+Or it would have to present you with a tree of choices, i.e. recognizing the
+dependency between ``Dev`` and ``Python``. This could happen through a smart
+algorithm, or by going through a multi-step choice process (choose
+``DevEnviron``, then choose ``Python``, after each step traversing the tree for
+new tags that become available).
 
-    Dev {
-        Python {}
-        Php {}
+Initially, I thought about validation rules that prevented such tags from being
+``hidden``, but that doesn't really make a lot of sense, and one reason is how
+easy it can be worked around. If this fails validation::
+
+    Python {
+        Dev {}
     }
 
-The reason is that in both cases a capitalized tag is used which is not on
-the root level. This is a dilemma - ``wsconfig`` would either have to
-indiscriminately present all such tags as choices, even though, in the last
-example, defining ``Python`` has no effect without also defining ``Dev``. Or
-it would have to present you with a tree of choices, i.e. recognizing the
-dependency between ``Dev`` and ``Python``, or implement a multi-step choice
-system. While possible, it doesn't do this currently.
-
-Instead, you have to use something like this::
+Then this would bypass it, but have the same effect (the Python tag being
+useless without the Dev tag)::
 
     Dev {
-        define Dev-PHP
-        define Dev-Python
+        python { noop }
     }
+    Python { define python }
 
-    Dev-PHP {}
-    Dev-Python {}
 
 
 Available plugins

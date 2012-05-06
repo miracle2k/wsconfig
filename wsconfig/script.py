@@ -91,6 +91,7 @@ def validate(document, filename, plugins):
 
     for item in document:
         if isinstance(item, Command):
+            # define behavior is hardcoded
             if item.argv[0] in ('define',):
                 item.plugin = None
                 continue
@@ -141,60 +142,51 @@ def test_match(expr, tags, sys_only=False):
         return expr in tags
 
 
-def firstpass(document, tags):
+def firstpass(document, init_tags):
     """Run the first pass over the ``document`` tree, as returned by the
-    parser, assuming ``tags`` to be defined.
+    parser, assuming ``init_tags`` to be defined.
 
-    This does two things:
+    It's sole purpose is to discover tags used in the document, so they may
+    be offered to the user as a choice.
 
-    *) It finds all tags that are being defined as consequence of the initial
-       set of tags. For example, given ``sys:windows`` in ``tags``::
+    It will find and return all tags used in selectors which are a) not
+    yet in ``tags`` and b) loosely match what already is in ``tags``. Here
+    is an explanation, by example, what we intend to return.
 
-            foo { define bar }
-            sys.windows { define foo }
+    In the simple case, collect all tags we run across::
 
-       The tags ``foo`` and ``bar`` will be added to the ``tags`` set. As you
-       can see, the tree needs to be traversed multiple times to find all tags.
-       The argument is modified in-place!
+        Foo {}                           [Foo]
+        Foo Bar {}                       [Foo, Bar]
+        Foo, Bar {}                      [Foo, Bar]
+        foo bar qux {}                   [foo, bar, qux]
 
-    *) It will find and return all tags used in selectors which are a) not
-       yet in ``tags`` and b) loosely match what already is in ``tags``. Here
-       is an explanation, by example, what we intend to return.
+    ``sys:`` selectors are special-cased and if used, they must match for
+    the tags to be collected. This is specifically so because it is assumed
+    that they cannot be set by the user, thus it makes no sense to present
+    the tag to the user::
 
-       In the simple case, collect all tags we run across::
+        Bar sys:linux {}                 [Bar] or []
+        sys:linux Foo, sys:macos Bar {}  [Foo] or [Bar] or []
+        sys:linux sys:macos Foo {}       []
 
-            Foo {}                           [Foo]
-            Foo Bar {}                       [Foo, Bar]
-            Foo, Bar {}                      [Foo, Bar]
-            foo bar qux {}                   [foo, bar, qux]
+    Nested selectors are only traversed if the expression fully matches::
 
-       ``sys:`` selectors are special-cased and if used, they must match for
-       the tags to be collected. This is specifically so because it is assumed
-       that they cannot be set by the user, thus it makes no sense to present
-       the tag to the user::
+        sys:linux { Bar {} }             [Bar] or []
+        Foo { Bar {} }                   [Foo]
+        sys:linux Foo { Bar {} }         [Foo] or []
 
-            Bar sys:linux {}                 [Bar] or []
-            sys:linux Foo, sys:macos Bar {}  [Foo] or [Bar] or []
-            sys:linux sys:macos Foo {}       []
-
-       Nested selectors are only traversed if the expression fully matches::
-
-            sys:linux { Bar {} }             [Bar] or []
-            Foo { Bar {} }                   [Foo]
-            sys:linux Foo { Bar {} }         [Foo] or []
-
-       If you give the user a choice based on the tags returned here, you will
-       have to run this pass twice (or multiple times) on the same document.
-       The second time you can include in the ``tags`` argument those the user
-       selected.
+    If you give the user a choice based on the tags returned here, you will
+    have to run this pass twice (or multiple times) on the same document.
+    The second time you can include in the ``tags`` argument those the user
+    selected.
     """
     discovered_tags = set()
 
-    def search_items(items):
+    def search_items(items, tags):
         for item in items:
             # Look at all "define" commands
             if isinstance(item, Command):
-                if item.command == 'define':
+                if item.argv[0] == 'define':
                     tags.update(item.argv)
                 continue
 
@@ -216,17 +208,10 @@ def firstpass(document, tags):
 
             # Traverse if matching
             if test_match(item.tagexpr.expr, tags):
-                search_items(item.items)
+                search_items(item.items, tags)
 
-    # Keep traversing the document until we find no new tags
-    while True:
-        num_tags = len(tags)
-        search_items(document)
-        # Stop when no new tags have been detected. Checking the length seems
-        # easier than checking if a set.update() call adds any new values.
-        if num_tags == len(tags):
-            break
-
+    # Be sure we don't modify the incoming set of tags
+    search_items(document, init_tags.copy())
     return discovered_tags
 
 
@@ -237,10 +222,10 @@ def apply_document(document, tags, state, dry_run=False):
     """
     for item in document:
         if isinstance(item, Command):
-            # Sometimes the ``validate`` phase does not hook up a plugin
-            # to the command - things like ``define`` have no effect in this
-            # phase, they are considered in an earlier pass.
-            if not item.plugin:
+            # Hardcode the define behavior - add the newly defined tags
+            # to the list, will have effect in subsequent code.
+            if item.argv[0] == 'define':
+                tags.update(item.argv)
                 continue
 
             if dry_run:
