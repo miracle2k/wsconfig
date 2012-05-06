@@ -187,10 +187,16 @@ dpkg
     Install dpkg packages on Debian-systems, using apt-get.
 
 link
-    Create a symbolic link. Both pathnames should be relative to the YAML
+    Create a symbolic link. Both pathnames can be relative to the config
     file itself, wsconfig will properly construct the link target path.
 
-shell
+    The command will fail if the target file already exists with a different
+    link target than the one you wish to say. You can add an ``-f`` option
+    to force a link overwrite::
+
+        link -f virtualenvs/postmkvirtualenv ~/.virtualenvs/postmkvirtualenv
+
+$
     Execute a shell command.
 
 mkdir
