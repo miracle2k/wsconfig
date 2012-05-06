@@ -133,6 +133,23 @@ Above, the tag ``tarsnap`` will only be defined if we're on Linux, or if we're
 on Windows *and* the ``Cygwin`` tag has been selected (remember, since it's
 uppercase, the user will be presented ``Cygwin`` as a choice).
 
+Finally, you can also use comments, of course:
+
+    # To fix monospace fonts in Java apps
+    # https//bugs.launchpad.net/ubuntu/+source/sun-java6/+bug/569396
+    dpkg ttf-dejavu
+
+There is no syntax for multiline comments, but if you're paying attention,
+there's an obvious way to implement them: Use a tag selector to disable a
+block of statements::
+
+    comment {
+    sys:linux (
+        ...
+    }
+    }
+
+
 
 Root usage
 ----------
