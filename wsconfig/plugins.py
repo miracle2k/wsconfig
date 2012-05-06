@@ -3,6 +3,10 @@ from os import path
 from subprocess import Popen, list2cmdline
 
 
+class ApplyError(Exception):
+    pass
+
+
 class Plugin(object):
     """Base class for a plugin, implementing a metaclass registry.
     """
@@ -22,7 +26,7 @@ class Plugin(object):
     def __init__(self, basedir):
         self.basedir = basedir
 
-    def run(self, arguments, raw_value, state):
+    def run(self, arguments, state):
         raise NotImplementedError()
 
     def log(self, str):
@@ -46,7 +50,7 @@ class DpkgPlugin(Plugin):
     """
     name = 'dpkg'
 
-    def run(self, arguments, raw_value, state):
+    def run(self, arguments, state):
         for package in arguments:
             self.pexecute(['apt-get', 'install', '-y', package])
 
@@ -56,21 +60,23 @@ class PipPlugin(Plugin):
     """
     name = 'pip'
 
-    def run(self, arguments, raw_value, state):
+    def run(self, arguments, state):
         for package in arguments:
-            self.pexecute(['pidp', 'install', package])
+            self.pexecute(['pip', 'install', package])
 
 
 class ShellPlugin(Plugin):
     """Shell command execution
     """
-    name = 'shell'
 
-    def run(self, arguments, raw_value, state):
+    name = '$'
+
+    def run(self, arguments, state):
+        assert len(arguments) == 1
         old_pwd = os.getcwdu()
         os.chdir(self.basedir)
         try:
-            self.pexecute(raw_value, shell=True)
+            self.pexecute(arguments[0], shell=True)
         finally:
             os.chdir(old_pwd)
 
@@ -78,9 +84,10 @@ class ShellPlugin(Plugin):
 class LinkPlugin(Plugin):
     """Create a symbolic link.
     """
+
     name = 'link'
 
-    def run(self, arguments, raw_value, state):
+    def run(self, arguments, state):
         force = False
         if arguments[0] == '-f':
             force = True
@@ -115,9 +122,10 @@ class LinkPlugin(Plugin):
 class MkdirPlugin(Plugin):
     """Create one or more directories.
     """
+
     name = 'mkdir'
 
-    def run(self, arguments, raw_value, state):
+    def run(self, arguments, state):
         for dir in arguments:
             abspath = path.join(self.basedir, path.expanduser(dir))
             if not path.exists(abspath):
@@ -130,6 +138,7 @@ class MkdirPlugin(Plugin):
 class RemindPlugin(Plugin):
     """Remind about manual installation steps
     """
+
     name = 'remind'
 
     @classmethod
@@ -140,7 +149,7 @@ class RemindPlugin(Plugin):
             print " *", reminder
         print ""
 
-    def run(self, arguments, raw_value, state):
+    def run(self, arguments, state):
         state.setdefault(self.__class__, {'reminders': []})
         state[self.__class__]['reminders'].append(' '.join(arguments))
         if not RemindPlugin.post_apply_handler in state['post_apply']:

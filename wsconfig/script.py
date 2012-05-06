@@ -5,7 +5,7 @@ import platform
 from os import path
 import argparse
 
-from .plugins import Plugin
+from .plugins import Plugin, ApplyError
 from .parsing import parse_file, Selector, Command, Or, And
 
 
@@ -13,9 +13,6 @@ __version__ = ('0', '2', 'dev')
 
 
 class ConfigError(Exception):
-    pass
-
-class ApplyError(Exception):
     pass
 
 
@@ -242,7 +239,7 @@ def apply_document(document, tags, state, dry_run=False):
 
             # Run the plugin
             try:
-                result = item.plugin.run(item.argv, None, state)
+                result = item.plugin.run(item.argv, state)
                 if result:
                     raise ApplyError('Plugin failed.')
             except ApplyError, e:
