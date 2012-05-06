@@ -12,6 +12,10 @@ __all__ = ('parse_file', 'parse_string', 'print_document',
 
 ################################################################################
 ###### Constructing the Grammar
+######
+###### Note: Using - instead of + to concatenate expressions means "no
+###### backtrack" and makes error messages a lot more readable. See
+###### http://pyparsing.wikispaces.com/message/view/home/40296440
 ################################################################################
 
 
@@ -50,7 +54,7 @@ command = shell_command | internal_command
 tagexprAnd = OneOrMore(Word(alphas, tagchars))
 tagexprOr = delimitedList(tagexprAnd)
 tagexpr = tagexprOr
-selector = tagexpr + Suppress('{') + items + Suppress('}')
+selector = tagexpr - Suppress('{') - items - Suppress('}')
 
 # An item is either a selector or a command
 item = command | selector
