@@ -22,3 +22,28 @@ Should be support some form of else?
         ...
     }
 
+Support describing tags that are offered as choices:
+    choice Dev "Development bundle"
+    choice VM "When running on a VM"
+
+Support tags that are set by default, but can be negated:
+    defaults mysql
+Mysql will be installed by default, unless:
+    wsconfig file apply -mysql
+
+"dpkg one two" - currently, if "one" fails, "two" will never run, even if
+execution is continued. Use generators to change that behavior.
+
+Support running code only upon success of another command?
+    Wine {
+      dpkg wine (
+          # runs only if wine was successfully installed.
+          install_wine_apps
+      )
+    }
+
+Allow simple communication between commands:
+    # downloads to temp dir
+    download http://....
+    # runs the file just downloaded
+    exec
