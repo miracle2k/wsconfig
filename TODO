@@ -8,3 +8,17 @@ link command: support globs to create multiple links.
 
 What if we want to add a line to a file (echo >>), but only if it's
 not already in there?
+
+Support a syntax for multi-line shell code - something like:
+    $:
+        mkdir /
+        wget sdf
+        ./sdf
+
+Should be support some form of else?
+    sys:linux {
+        ...
+    } else {
+        ...
+    }
+
