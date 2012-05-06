@@ -1,7 +1,3 @@
-Should this be based on fabric?
-
-$ shortcut for shell commands
-
 Don't require the full target filename with link, specifying a
 directory should be enough.
 
