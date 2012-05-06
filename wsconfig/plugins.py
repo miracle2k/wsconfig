@@ -23,8 +23,13 @@ class Plugin(object):
                 cls.PLUGINS[clazz.name] = clazz
             return clazz
 
-    def __init__(self, basedir):
+    # Can be overwritten on a per-plugin or per-instance base
+    sudo = False
+
+    def __init__(self, basedir, sudo=None):
         self.basedir = basedir
+        if sudo is not None:
+            self.sudo = sudo
 
     def run(self, arguments, state):
         raise NotImplementedError()
@@ -34,6 +39,9 @@ class Plugin(object):
         print "====>", str
 
     def pexecute(self, cmdline, *a, **kw):
+        if self.sudo:
+            cmdline = ['sudo'] + cmdline[:]
+
         self.log("$ %s" % (list2cmdline(cmdline)
                            if isinstance(cmdline, list) else cmdline))
         try:
@@ -48,7 +56,9 @@ class Plugin(object):
 class DpkgPlugin(Plugin):
     """Debian package installation.
     """
+
     name = 'dpkg'
+    sudo = True
 
     def run(self, arguments, state):
         for package in arguments:
@@ -58,7 +68,9 @@ class DpkgPlugin(Plugin):
 class PipPlugin(Plugin):
     """Pip python package installation.
     """
+
     name = 'pip'
+    sudo = True
 
     def run(self, arguments, state):
         for package in arguments:

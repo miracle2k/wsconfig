@@ -91,16 +91,26 @@ def validate(document, filename, plugins):
 
     for item in document:
         if isinstance(item, Command):
-            if item.command in ('define',):
+            if item.argv[0] in ('define',):
                 item.plugin = None
                 continue
+
+            # Resolve a sudo in front of the command
+            if item.argv[0] == 'sudo':
+                item.command = item.argv[1]
+                item.args = item.argv[2:]
+                sudo = True
+            else:
+                item.command = item.argv[0]
+                item.args = item.argv[1:]
+                sudo = False
 
             try:
                 plugin_class = plugins[item.command]
             except KeyError:
                 raise ConfigError('"%s" not a valid plugin' % item.command)
             else:
-                item.plugin = plugin_class(basedir)
+                item.plugin = plugin_class(basedir, sudo=sudo)
 
         elif isinstance(item, Selector):
             validate(item.items, filename, plugins)
@@ -239,7 +249,7 @@ def apply_document(document, tags, state, dry_run=False):
 
             # Run the plugin
             try:
-                result = item.plugin.run(item.argv, state)
+                result = item.plugin.run(item.args, state)
                 if result:
                     raise ApplyError('Plugin failed.')
             except ApplyError, e:

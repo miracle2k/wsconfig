@@ -84,13 +84,12 @@ class Node(object):
 
 class Command(Node):
     def __init__(self, argv):
-        self.command = argv[0]
-        self.argv = argv[1:]
+        self.argv = argv
     def __str__(self):
-        return 'exec(%s:%s)' % (self.command, " ".join(self.argv))
+        return 'exec(%s)' % " ".join(self.argv)
     def __repr__(self):
-        return '<%s cmd=%s argv=%s>' % (
-            self.__class__.__name__, self.command, self.argv
+        return '<%s %s>' % (
+            self.__class__.__name__, self.argv
         )
 
 class And(Node):

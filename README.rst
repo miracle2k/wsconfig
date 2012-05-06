@@ -137,7 +137,20 @@ uppercase, the user will be presented ``Cygwin`` as a choice).
 Root usage
 ----------
 
-TODO
+You'll want to run some commands as root, but usually not all - you want your
+config files to be created with you as the owner. ``wsconfig`` uses ``sudo``
+to run commands as root.
+
+Some commands, like ``dpkg``, use sudo by default. Others, like ``link`` or
+``mkdir``, to run them as root, you can prefix them with the term ``sudo``::
+
+    sudo mkdir /opt/foo
+
+For shell commands, you are free to do whatever you like, since they will be
+piped directly to the shell::
+
+    $ sudo apt-get update
+    $ su -c "apt-get update"
 
 
 Tagging limitations
