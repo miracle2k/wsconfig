@@ -196,6 +196,10 @@ Instead, you have to use something like this::
 Available plugins
 -----------------
 
+$
+    Execute something in the shell. These are not parsed like other commands -
+    instead, content is given to the shell as-is.
+
 dpkg
     Install dpkg packages on Debian-systems, using apt-get.
 
@@ -208,9 +212,6 @@ link
     to force a link overwrite::
 
         link -f virtualenvs/postmkvirtualenv ~/.virtualenvs/postmkvirtualenv
-
-$
-    Execute a shell command.
 
 mkdir
     Creates a directory, if it does't exist yet.
