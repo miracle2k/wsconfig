@@ -67,51 +67,64 @@ root = items + StringEnd()
 ################################################################################
 
 
-class Command(object):
+class Node(object):
+    def __eq__(self, other):
+        if type(other) is type(self):
+            return self.__dict__ == other.__dict__
+        return False
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+class Command(Node):
     def __init__(self, argv):
         self.command = argv[0]
         self.argv = argv[1:]
-
-    def __repr__(self):
+    def __str__(self):
         return 'exec(%s:%s)' % (self.command, " ".join(self.argv))
+    def __repr__(self):
+        return '<%s cmd=%s argv=%s>' % (
+            self.__class__.__name__, self.command, self.argv
+        )
 
-
-class And(object):
+class And(Node):
     def __init__(self, items):
         self.items = items
-
-    def __repr__(self):
+    def __str__(self):
         return '%s' % " and ".join(map(str, self.items))
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__, self.items)
 
-
-class Or(object):
+class Or(Node):
     def __init__(self, items):
         self.items = items
-
-    def __repr__(self):
+    def __str__(self):
         return '%s' % " or ".join(map(
             # Wrap nested ``And``s in brackets if they have more than one item
             lambda i: "(%s)" % i
                 if (isinstance(i, And) and len(i.items) > 1)
                 else str(i),
             self.items))
+    def __repr__(self):
+        return '<%s %s>' % (
+            self.__class__.__name__, ' '.join(map(repr, self.items)))
 
-
-class TagExpr(object):
+class TagExpr(Node):
     def __init__(self, expr):
         self.expr = expr
-
-    def __repr__(self):
+    def __str__(self):
         return 'if(%s)' % self.expr
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__, repr(self.expr))
 
-
-class Selector(object):
+class Selector(Node):
     def __init__(self, tagexpr, items):
         self.tagexpr = tagexpr
         self.items = items
-
-    def __repr__(self):
+    def __str__(self):
         return '%s -> %s' % (self.tagexpr, self.items)
+    def __repr__(self):
+        return '<%s %s items=%s>' % (
+            self.__class__.__name__, repr(self.tagexpr), map(repr, self.items))
 
 
 command.setParseAction(lambda _,__,toks: Command(toks[0:]))
