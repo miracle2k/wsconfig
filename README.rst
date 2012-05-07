@@ -198,8 +198,8 @@ schizophrenic. The inclination would be to use it like this::
 I.e., as a sort of "call" or "include", with the ``chrome`` selector serving
 to encapsulate the relevant commands visually/structurally. And while the above
 does indeed work, even now, if the ``chrome`` block comes after it, the whole
-point of this supposing to be an include, is that it shouldn't matter where it
-is located in the file.
+point of this being supposed to be an include is that it shouldn't matter where
+in the file it is located.
 But that's not really what ``define`` is. If above the ``foo`` command fails,
 and the script is aborted at this point, you'd expect a ``chrome`` block to not
 be processed. However, if ``defines`` are preprocessed as was the case, then
