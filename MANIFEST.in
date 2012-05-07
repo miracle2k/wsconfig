@@ -1,5 +1,6 @@
-include *.rst
-include example.yaml
-include tests.py
-include MANIFEST.in
-include README
+include *.rst TODO
+include wsconfig.py
+
+recursive-include tests *
+recursive-exclude tests *.pyc
+

@@ -1,0 +1,4 @@
+#!/usr/bin/env python
+
+import wsconfig.script
+wsconfig.script.run()

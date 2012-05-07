@@ -7,7 +7,7 @@ import sys, os
 try:
     from setuptools import setup
     kw = {'entry_points':
-          """[console_scripts]\nwsconfig = wsconfig:run\n""",
+          """[console_scripts]\nwsconfig = wsconfig.script:run\n""",
           'zip_safe': False}
 except ImportError:
     from distutils.core import setup
@@ -19,7 +19,7 @@ here = os.path.dirname(os.path.abspath(__file__))
 # Figure out the version
 version_re = re.compile(
     r'__version__ = (\(.*?\))')
-fp = open(os.path.join(here, 'wsconfig.py'))
+fp = open(os.path.join(here, 'wsconfig/__init__.py'))
 version = None
 for line in fp:
     match = version_re.search(line)
@@ -41,7 +41,10 @@ setup(name='wsconfig',
       author_email='michael@elsdoerfer.com',
       url='http://github.com/miracle2k/wsconfig',
       license='BSD',
-      py_modules=['wsconfig'],
+      packages=['wsconfig'],
+      install_requires=[
+          'PyParsing'
+      ],
       **kw
       )
 

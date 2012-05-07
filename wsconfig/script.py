@@ -9,9 +9,6 @@ from .plugins import Plugin, ApplyError
 from .parsing import parse_file, Selector, Command, Or, And
 
 
-__version__ = ('0', '2', 'dev')
-
-
 class ConfigError(Exception):
     pass
 
