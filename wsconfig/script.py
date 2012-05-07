@@ -253,51 +253,44 @@ def apply_document(document, tags, state, dry_run=False):
 
 
 def main(argv):
-    """
-    I would prefer a CLI that provides the following modes:
-
-        wsconfig --defaults
-        wsconfig config.ws
-        wsconfig config.ws apply [tags [tags ...]]
-
-    That seems really not possible with argparse, but we get something close
-    by hacking the help text and using parse_known_args(). But it might just
-    be easier to parse the command line manually in this case, or only enlist
-    the help of argparse for stuff like --defaults (and others in the future).
-    """
-
+    # It's amazing how very much this CLI interface is exactly how I wanted it,
+    # after the amount of handwringing I did, thinking argparse couldn't do it
+    # at all.
+    # Specifically, I was trying to do implement the "apply" command using the
+    # subparser functionality, and that is just a no go (for example cannot
+    # be made optional).
+    #
+    # Even the default usage string is pretty fine, though a custom one here
+    # is a bit better still:
     usage_string = '''
-  %(p)s --defaults
-  %(p)s file
-  %(p)s file apply [tags [tags ...]]''' % {'p': path.basename(argv[0])}
+  %(prog)s --defaults
+  %(prog)s file
+  %(prog)s file apply [tags [tags ...]]'''
 
     parser = argparse.ArgumentParser(usage=usage_string)
     group = parser.add_argument_group(title='modes')
     group.add_argument('--defaults', action='store_true',
                         help='Show the system default tags')
-    group.add_argument('file', help='The config file to use/run', default=1)
-    subparsers = parser.add_subparsers(help=argparse.SUPPRESS)
-    subparser = subparsers.add_parser('apply', usage=usage_string,
-                               help='Apply the document')
-    subparser.add_argument('tags', nargs='*', help=argparse.SUPPRESS)
+    group.add_argument('file',  nargs='?',
+        help='The config file to use. If you only specify this, '
+             'you will be given a list of tags that the file supports')
+    # Is rendered as {apply} in help text, which is I suppose good enough as
+    # an indication that it should be given as a literal string.
+    group.add_argument('apply', nargs='?', choices=('apply',),
+        help='Specify the keyword "apply" to actually run the '+
+             'commands in the given file')
+    group.add_argument('tags', nargs='*',
+        help='Define these tags when applying the config file')
 
-    # XXX Actually, argparse will not allow --default to go through
-    # even with parse_known_args()
-    namespace, unparsed = parser.parse_known_args()
-    if unparsed:
-        print 'Unsupported arguments: %s' % ', '.join(unparsed)
-        parser.print_help()
-        return 1
-
+    namespace = parser.parse_args(argv[1:])
     if namespace.defaults and namespace.file:
-        print 'Error: Specify --defaults or a file to process.'
+        print 'Error: Either specify --defaults, or a file to process.'
         parser.print_help()
         return 1
 
     # Get the tags that are defined by default
     tags = init_env()
 
-    #namespace.defaults = True
     if namespace.defaults:
         for tag in sorted(tags):
             print tag
