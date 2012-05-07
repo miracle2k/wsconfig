@@ -298,7 +298,7 @@ def main(argv):
         help='Define these tags when applying the config file')
 
     namespace = parser.parse_args(argv[1:])
-    if namespace.defaults and namespace.file:
+    if not (bool(namespace.defaults) != bool(namespace.file)):
         print 'Error: Either specify --defaults, or a file to process.'
         parser.print_help()
         return 1
