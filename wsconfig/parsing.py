@@ -51,7 +51,7 @@ command = shell_command | internal_command
 # well as usage of commas (OR). Brackets for complex expressions are currently
 # not supported. AND takes preference, so: ``tag1, tag2 tag3`` is
 # ``tag1 OR (tag2 AND tag3)``.
-tagexprAnd = OneOrMore(Word(alphas, tagchars))
+tagexprAnd = OneOrMore(Combine(Optional('!') + Word(alphas, tagchars)))
 tagexprOr = delimitedList(tagexprAnd)
 tagexpr = tagexprOr
 selector = tagexpr - Suppress('{') - items - Suppress('}')

@@ -64,6 +64,11 @@ class TestParseBaseObjects(object):
             Selector(TagExpr(Or([And(['bar']), And(['foo', 'qux'])])), [])
         ]
 
+        # Negated tags
+        assert parse('!bar !foo { } ') == [
+            Selector(TagExpr(Or([And(['!bar', '!foo'])])), [])
+        ]
+
 
 class TestParseComments(object):
 

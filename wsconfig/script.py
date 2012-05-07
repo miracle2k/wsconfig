@@ -117,6 +117,16 @@ def validate(document, filename, plugins):
             validate(item.items, filename, plugins)
 
 
+def parse_tag(tag):
+    """See if the tag is negated, return 2-tuple.
+
+    For "-foo" returns (False, 'foo).
+    """
+    if tag.startswith('!'):
+        return False, tag[1:]
+    return True, tag
+
+
 def test_match(expr, tags, sys_only=False):
     """Test if ``tagexpr`` succeeds given the list of tags.
 
@@ -137,9 +147,10 @@ def test_match(expr, tags, sys_only=False):
         return False
     else:
         assert isinstance(expr, basestring)
-        if sys_only and not expr.startswith('sys:'):
+        required, tag = parse_tag(expr)
+        if sys_only and not tag.startswith('sys:'):
             return True
-        return expr in tags
+        return (tag in tags) if required else (tag not in tags)
 
 
 def firstpass(document, init_tags):
@@ -203,7 +214,7 @@ def firstpass(document, init_tags):
             for and_expr in or_expr.items:
                 if test_match(and_expr, tags, sys_only=True):
                     discovered_tags.update(
-                        {tag for tag in and_expr.items
+                        {tag for _, tag in map(parse_tag, and_expr.items)
                          if not tag.startswith('sys:') and not tag in tags})
 
             # Traverse if matching

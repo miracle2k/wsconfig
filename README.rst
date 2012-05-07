@@ -130,6 +130,13 @@ Above, the tag ``tarsnap`` will only be defined if we're on Linux, or if we're
 on Windows *and* the ``Cygwin`` tag has been selected (remember, since it's
 uppercase, the user will be presented ``Cygwin`` as a choice).
 
+Tags can also be negated. If you want to install Thunderbird only when not in
+a virtualized environment::
+
+    sys:linux !Vm {
+        dpkg thunderbird
+    }
+
 Finally, you can also use comments, of course:
 
     # To fix monospace fonts in Java apps

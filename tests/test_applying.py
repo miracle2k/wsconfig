@@ -44,6 +44,9 @@ class TestFirstPass(object):
         assert self.process(expr, {'sys:osx'}) == {'qux'}
         assert self.process(expr, {'sys:osx', 'sys:test'}) == \
                {'qux', 'bar', 'foo'}
+        # Regression: Make sure that the ! operator works here as well
+        assert self.process('!sys:test foo {}') == {'foo'}
+        assert self.process('!sys:test foo {}', {'foo'}) == set()
 
         # However, tags do need to match to be followed.
         assert self.process('foo { bar {} }') == {'foo'}
@@ -79,23 +82,28 @@ class TestApply(object):
         assert self.apply('foo { log 42 }') == []
         assert self.apply('foo { log 42 }', {'foo'}) == [['42']]
 
-    def test_complex_expr(self):
-        # AND
+    def test_and(self):
         assert self.apply('foo bar { log 42 }', set()) == []
         assert self.apply('foo bar { log 42 }', {'foo'}) == []
         assert self.apply('foo bar { log 42 }', {'bar'}) == []
         assert self.apply('foo bar { log 42 }', {'foo', 'bar'}) == [['42']]
-        # OR
+
+    def test_or(self):
         assert self.apply('foo, bar { log 42 }', set()) == []
         assert self.apply('foo, bar { log 42 }', {'foo'}) == [['42']]
         assert self.apply('foo, bar { log 42 }', {'bar'}) == [['42']]
         assert self.apply('foo, bar { log 42 }', {'foo', 'bar'}) == [['42']]
-        # AND + OR
+
+    def test_and_or(self):
         assert self.apply('foo bar, qux { log 42 }', set()) == []
         assert self.apply('foo bar, qux { log 42 }', {'foo', 'qux'}) == [['42']]
         assert self.apply('foo bar, qux { log 42 }', {'bar', 'qux'}) == [['42']]
         assert self.apply('foo bar, qux { log 42 }', {'foo', 'bar'}) == [['42']]
         assert self.apply('foo bar, qux { log 42 }', {'qux'}) == [['42']]
+
+    def test_negated_tags(self):
+        assert self.apply('!foo { log 42 }', set()) == [['42']]
+        assert self.apply('!foo { log 42 }', {'foo'}) == []
 
     def test_nesting(self):
         assert self.apply('foo { bar { log 42 }}', set()) == []
