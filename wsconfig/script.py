@@ -268,6 +268,8 @@ def main(argv):
   %(prog)s file apply [tags [tags ...]]'''
 
     parser = argparse.ArgumentParser(usage=usage_string)
+    parser.add_argument('--dry-run', action='store_true',
+                        help='Show the commands that would be run.')
     group = parser.add_argument_group(title='modes')
     group.add_argument('--defaults', action='store_true',
                         help='Show the system default tags')
@@ -320,7 +322,7 @@ def main(argv):
 
     # Actually run all commands
     state = {'post_apply': []}
-    apply_document(document, tags, state, dry_run=False)
+    apply_document(document, tags, state, dry_run=namespace.dry_run)
 
     # Execute post apply handlers. Commands like ``remind`` set those up.
     for callable in state['post_apply']:
