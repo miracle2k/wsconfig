@@ -98,6 +98,8 @@ def validate(document, filename, plugins):
 
             # Resolve a sudo in front of the command
             if item.argv[0] == 'sudo':
+                if len(item.argv) == 1:
+                    raise ConfigError('sudo must be followed by a command')
                 item.command = item.argv[1]
                 item.args = item.argv[2:]
                 sudo = True

@@ -2,11 +2,25 @@
 """
 
 from textwrap import dedent
-from StringIO import StringIO
 from nose.tools import assert_raises
 from wsconfig.parsing import parse_string
 from wsconfig.plugins import Plugin
-from wsconfig.script import firstpass, apply_document, validate
+from wsconfig.script import firstpass, apply_document, validate, ConfigError
+
+
+class TestValidation(object):
+    """Test dealing with correct and incorrect scripts.
+
+    TODO: More tests are needed here.
+    """
+
+    def validate(self, text):
+        document = parse_string(dedent(text))
+        validate(document, '', [])
+        return document
+
+    def test_lonely_sudo(self):
+        assert_raises(ConfigError, self.validate, 'sudo')
 
 
 class TestFirstPass(object):
