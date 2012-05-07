@@ -69,6 +69,13 @@ class TestParseBaseObjects(object):
             Selector(TagExpr(Or([And(['!bar', '!foo'])])), [])
         ]
 
+    def test_shell_command(self):
+        # [Regression] The $ syntax did not allow for a closing } on the
+        # same line.
+        assert parse('foo { $ } ') == [
+            Selector(TagExpr(Or([And(['foo'])])), [Command(['$', ''])])
+        ]
+
 
 class TestParseComments(object):
 

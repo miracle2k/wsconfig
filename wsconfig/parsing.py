@@ -40,7 +40,7 @@ internal_command = \
         (Suppress(lineEnd) | FollowedBy('}'))
 
 # Provide a special syntax for shell commands
-shell_command = Literal('$') + SkipTo(lineEnd)
+shell_command = Literal('$') + SkipTo(lineEnd | Literal('}'))
 
 command = shell_command | internal_command
 
