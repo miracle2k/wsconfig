@@ -323,7 +323,7 @@ def main(argv):
     # If the user is not yet running an apply, present him with the tags
     # that the firstpass discovered (only those which start with an uppercase
     # letter, per our convention).
-    if not namespace.tags:
+    if not namespace.apply:
         print 'Optional tags for you to pass to apply:'
         for tag in found_tags:
             if tag[0].isupper():
