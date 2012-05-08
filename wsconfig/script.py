@@ -103,7 +103,7 @@ def validate(document, filename, plugins):
             else:
                 item.command = item.argv[0]
                 item.args = item.argv[1:]
-                sudo = False
+                sudo = None
 
             try:
                 plugin_class = plugins[item.command]
