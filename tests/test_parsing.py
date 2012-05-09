@@ -36,6 +36,9 @@ class TestParseBaseObjects(object):
             [Command(['command', 'foo\\"bar'])]
         )
 
+        # [Regression] commands with underscores
+        assert parse('cmd_foo') == [Command(['cmd_foo'])]
+
     def test_tagexpr(self):
         """Test simple tag expressions."""
         assert parse('tag { } ') == [

@@ -383,6 +383,12 @@ remind
     Remind yourself of some manual setup step. These will be collected and
     presented at the end of the script.
 
+ensure_line
+    Add a line to the given file, but only if it doesn't exist yet::
+
+        ensure_line ~/.bashrc "~/.bashrc_michael"
+
+
 
 Applying a config file:
 ----------------------

@@ -88,7 +88,7 @@ tagchars = alphanums + ':._-'
 #
 # The first word needs to start with an alphanumeric character only.
 internal_command = \
-        Word(alphas, alphanums) + \
+        Word(alphas, alphanums+'_') + \
         ZeroOrMore(NotAny(lineEnd) + (quotedString | Word(commandchars))) + \
         (Suppress(lineEnd) | FollowedBy('}'))
 

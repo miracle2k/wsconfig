@@ -162,6 +162,27 @@ class LinkPlugin(Plugin):
             return 1
 
 
+class EnsureLinePlugin(Plugin):
+    """Ensure that a file contains a certain line.
+    """
+
+    name = 'ensure_line'
+
+    def run(self, arguments, state):
+        if len(arguments) != 2:
+            raise ValueError('Need exactly two arguments')
+
+        filename, line =  arguments
+        self.execute_impl([path.join(self.basedir, path.expanduser(filename)), line])
+
+    @classmethod
+    def impl(cls, arguments):
+        filename, line =  arguments
+        with open(filename, 'a+') as f:
+            if not line in map(lambda s: s.rstrip('\n\r'), f.readlines()):
+                f.write('%s\n' % line)
+
+
 class MkdirPlugin(Plugin):
     """Create one or more directories.
     """
