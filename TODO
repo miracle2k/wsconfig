@@ -47,3 +47,6 @@ Allow simple communication between commands:
     download http://....
     # runs the file just downloaded
     exec
+
+
+Improve output formatting during runtime (i.e. the =====> syntax).
