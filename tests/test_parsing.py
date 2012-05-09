@@ -88,6 +88,20 @@ class TestParseBaseObjects(object):
             Command(['$', '\nVAR=foo\necho $VAR\n'])
         ]
 
+        # [Regression] Multiple shell commands with different indentation.
+        # The stack as not correctly reset
+        assert parse('''
+       $:foo
+       cmd
+          $: bar
+          cmd
+        ''') == [
+            Command(['$', 'foo\n']),
+            Command(['cmd']),
+            Command(['$', 'bar\n']),
+            Command(['cmd']),
+        ]
+
 
 class TestParseComments(object):
 

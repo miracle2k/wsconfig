@@ -33,6 +33,7 @@ def minIndentBlock(blockStatementExpr):
     # Use an dummy token to have a function run when we start parsing. It
     # determines and stores the column of the current parsing position.
     def capture_initial_indent(s, location, t):
+        del initial[:]  # Be sure to reset
         # -1 is required, or the col() function might already refer to the
         # next line (and return 0).
         initial.append(col(location-1, s))
