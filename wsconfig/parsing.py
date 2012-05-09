@@ -18,6 +18,59 @@ __all__ = ('parse_file', 'parse_string', 'print_document',
 ###### http://pyparsing.wikispaces.com/message/view/home/40296440
 ################################################################################
 
+def minIndentBlock(blockStatementExpr):
+    """Adapted from ``pyparsing.indentedBlock``.
+
+    From the current column, tries to parse ``blockStatementExpr`` on all
+    following lines, so long as they have an indent larger than that initial
+    position. If a line has a indent smaller or equal to the column position
+    where parsing the block first started, then the block stops consuming.
+    """
+
+    # Only a list so that nested scopes can modify it
+    initial = []
+
+    # Use an dummy token to have a function run when we start parsing. It
+    # determines and stores the column of the current parsing position.
+    def capture_initial_indent(s, location, t):
+        # -1 is required, or the col() function might already refer to the
+        # next line (and return 0).
+        initial.append(col(location-1, s))
+    # Be sure to leaveWhitespace(), or the parser will already skip ahead
+    # and the action will not get to know the original start column.
+    MARK_INITIAL = Empty().setParseAction(capture_initial_indent).leaveWhitespace()
+
+    # Use a dummy token to check the indent, on every line. If this dummy token
+    # fails, then the expressions that use it will fail, the block will end,
+    # and the parser can continue with other expressions.
+    def checkPeerIndent(s,l,t):
+        curCol = col(l,s)
+        # TO keep the block going, the indentation needs to be larger than
+        # the original position where we started.
+        if curCol <= initial[0]:
+            # Note: Because below we use OneOrMore(), if there is not a single
+            # correct indent, the user will get to see this message.
+            raise ParseException(
+                s, l, 'Indentation must be at least %d' % (initial[0]+1))
+    CHECK_INDENT = Empty().setParseAction(checkPeerIndent)
+
+    # Define LineEnd with custom whitespace chars. This is how
+    # pyparsing.indentedBlock does it, so I kept it.
+    #
+    # If .suppress() is added, the whitespace used for indentation and at eol
+    # will be removed. We'll keep it for now, to get the shell code just as
+    # the user specified it. If the whitespace is removed, then you'll want
+    # to change the join in the shell_command parseAction to use a \n instead.
+    NL = OneOrMore(LineEnd().setWhitespaceChars("\t "))
+
+    # Build the block parser
+    return (
+        # Mark the initial position, then optionally consume a newline,
+        # if there is any (or blockStatementExpr may begin on the same line).
+        MARK_INITIAL + Optional(NL) +
+        # Parse any number of block statements, always check indent
+        (OneOrMore(CHECK_INDENT + blockStatementExpr + Optional(NL))))
+
 
 items = Forward()
 
@@ -40,7 +93,9 @@ internal_command = \
         (Suppress(lineEnd) | FollowedBy('}'))
 
 # Provide a special syntax for shell commands
-shell_command = Literal('$') + SkipTo(lineEnd | Literal('}'))
+shell_command =\
+    (Suppress(Literal('$:')) - minIndentBlock(SkipTo(lineEnd))) |\
+    (Suppress(Literal('$')) + SkipTo(lineEnd | Literal('}')))
 
 command = shell_command | internal_command
 
@@ -133,6 +188,9 @@ class Selector(Node):
             self.__class__.__name__, repr(self.tagexpr), map(repr, self.items))
 
 
+# Restore $, which we have the parser suppress, to indicate shell command
+shell_command.setParseAction(lambda _,__,toks: ['$'] + [''.join(toks[:])])
+# Create nodes for other tokens
 command.setParseAction(lambda _,__,toks: Command(toks[0:]))
 tagexprAnd.setParseAction(lambda _,__,toks: And(toks[0:]))
 tagexpr.setParseAction(lambda _,__,toks: TagExpr(Or(toks[0:])))

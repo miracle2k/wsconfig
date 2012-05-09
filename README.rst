@@ -335,12 +335,27 @@ useless without the Dev tag)::
 
 
 
-Available plugins
------------------
+Available commands
+------------------
 
 $
     Execute something in the shell. These are not parsed like other commands -
-    instead, content is given to the shell as-is.
+    instead, content is given to the shell as-is. A multiline shell syntax
+    is also supported::
+
+        $: set -e
+           FOO=bar
+           echo $FOO
+
+    Whitespace is significant here. After the colon, every line that is
+    indented at least as many characters as the position of the colon will
+    be considered part of the shell command. The first line with an indentation
+    level equal or lower than the column will be the next regular command::
+
+        $:
+              FOO=bar
+            echo $FOO
+         remind "This is no longer shell"
 
 dpkg
     Install dpkg packages on Debian-systems, using apt-get.

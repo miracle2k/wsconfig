@@ -2,7 +2,7 @@
 """
 
 from textwrap import dedent
-from pyparsing import ParseException
+from pyparsing import ParseException, ParseSyntaxException
 from nose.tools import assert_raises
 
 from wsconfig.parsing import parse_string, Command, Selector, TagExpr, Or, And
@@ -74,6 +74,15 @@ class TestParseBaseObjects(object):
         # same line.
         assert parse('foo { $ } ') == [
             Selector(TagExpr(Or([And(['foo'])])), [Command(['$', ''])])
+        ]
+
+        # Multiline shell command
+        assert parse('''
+       $:
+            VAR=foo
+            echo $VAR
+        ''') == [
+            Command(['$', '\nVAR=foo\necho $VAR\n'])
         ]
 
 
@@ -181,3 +190,16 @@ class TestParseWhitespace(object):
     def test_whitespace_in_command_args(self):
         assert parse('command     "  "        bla') == \
                [Command(['command', '  ', 'bla'])]
+
+    def test_multiline_shell(self):
+        assert parse('''$:foo''') == [Command(['$', 'foo'])]
+        assert parse('''$:     foo''') == [Command(['$', 'foo'])]
+        assert parse('''
+       $:  foo
+          bar
+              qux
+       ''') == [Command(['$', 'foo\nbar\nqux\n'])]
+        assert_raises(ParseSyntaxException, parse, '''
+       $:
+        foo
+       ''')
