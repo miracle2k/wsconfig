@@ -1,6 +1,7 @@
 import os
 from os import path
 from subprocess import Popen, list2cmdline
+import sys
 
 
 class ApplyError(Exception):
@@ -34,11 +35,13 @@ class Plugin(object):
     def run(self, arguments, state):
         raise NotImplementedError()
 
-    def log(self, str):
+    @classmethod
+    def log(cls, str):
         print ""
         print "====>", str
 
-    def pexecute(self, cmdline, *a, **kw):
+    def execute_proc(self, cmdline, *a, **kw):
+        """Subclasses should use this to run an external command."""
         if self.sudo:
             cmdline = ['sudo'] + cmdline[:]
 
@@ -52,6 +55,28 @@ class Plugin(object):
         if process.returncode != 0:
             raise ApplyError('Process returns non-zero code: %s' % process.returncode)
 
+    def execute_impl(self, arguments):
+        """Subclasses should use this to run their own ``impl`` methods.
+
+        If necessary, will run these methods via sudo.
+        """
+        if not self.sudo:
+            return self.impl(arguments)
+        else:
+            # It would be pretty to use an environment variable as an indicator
+            # that the script should execute a plugin, but those would be lost
+            # by sudo.
+            try:
+                cmdline = ['sudo', sys.executable, '%s' % sys.argv[0],
+                             'WSCONFIG_CALL_PLUGIN', self.name] + arguments
+                process = Popen(cmdline)
+            except OSError, e:
+                raise ApplyError('Failed to run %s: %s' % (
+                    list2cmdline(cmdline), e))
+            process.wait()
+            if process.returncode != 0:
+                raise ApplyError('Process returns non-zero code: %s' % process.returncode)
+
 
 class DpkgPlugin(Plugin):
     """Debian package installation.
@@ -62,7 +87,7 @@ class DpkgPlugin(Plugin):
 
     def run(self, arguments, state):
         for package in arguments:
-            self.pexecute(['apt-get', 'install', '-y', package])
+            self.execute_proc(['apt-get', 'install', '-y', package])
 
 
 class PipPlugin(Plugin):
@@ -74,7 +99,7 @@ class PipPlugin(Plugin):
 
     def run(self, arguments, state):
         for package in arguments:
-            self.pexecute(['pip', 'install', package])
+            self.execute_proc(['pip', 'install', package])
 
 
 class ShellPlugin(Plugin):
@@ -88,7 +113,7 @@ class ShellPlugin(Plugin):
         old_pwd = os.getcwdu()
         os.chdir(self.basedir)
         try:
-            self.pexecute(arguments[0], shell=True)
+            self.execute_proc(arguments[0], shell=True)
         finally:
             os.chdir(old_pwd)
 
@@ -100,16 +125,22 @@ class LinkPlugin(Plugin):
     name = 'link'
 
     def run(self, arguments, state):
+        return self.execute_impl([self.basedir] + arguments)
+
+    @classmethod
+    def impl(cls, arguments):
+        basedir = arguments.pop(0)
+
         force = False
         if arguments[0] == '-f':
             force = True
             arguments = arguments[1:]
 
         src, dst = arguments
-        src, dst = path.join(self.basedir, path.expanduser(src)),\
-                   path.join(self.basedir, path.expanduser(dst))
+        src, dst = path.join(basedir, path.expanduser(src)),\
+                   path.join(basedir, path.expanduser(dst))
         link = path.relpath(src, path.dirname(dst))
-        self.log('link %s -> %s' % (link, dst))
+        cls.log('link %s -> %s' % (link, dst))
         # Maybe delete an existing target
         if path.exists(dst):
             if force:
@@ -142,9 +173,14 @@ class MkdirPlugin(Plugin):
             abspath = path.join(self.basedir, path.expanduser(dir))
             if not path.exists(abspath):
                 self.log('mkdir %s' % abspath)
-                os.makedirs(abspath)
+                self.execute_impl([abspath])
             else:
                 self.log('%s exists' % abspath)
+
+    @classmethod
+    def impl(cls, arguments):
+        assert len(arguments) == 1
+        os.makedirs(arguments[0])
 
 
 class RemindPlugin(Plugin):

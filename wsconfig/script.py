@@ -263,6 +263,29 @@ def apply_document(document, tags, state, dry_run=False):
 
 
 def main(argv):
+    plugins = Plugin.__class__.PLUGINS
+
+    # For internal commands like ``link`` to run as root, the script calls
+    # itself with sudo, and in such a way that the new process executes the
+    # desired plugin.
+    #
+    # .. note::
+    #      The alternative to this approach would be to always have wsconfig
+    #      run as root, preferably via sudo such that ~ keeps resolving, and
+    #      then set the effective user id for non-sudo commands to the one of
+    #      the non-root user (possibly retrievable via pwd.getpwnam(os.getlogin()).
+    #      Downsides:
+    #         - I had trouble with os.setegid() raises PermissionDenied. There
+    #           might be other system-dependent complexities.
+    #         - Possible complexities involving making sure non-sudo actions
+    #           are run as the real user, ~ resolves accordingly etc.
+    #         - Does not work on Windows at all.
+    #      On the plus side, the dependency on sudo would actually be limited
+    #      in this scenario, as opposed to the approach now, where it is
+    #      essential to run any command as root.
+    if len(argv) > 1 and argv[1] == 'WSCONFIG_CALL_PLUGIN':
+        return plugins[argv[2]].impl(argv[3:])
+
     # It's amazing how very much this CLI interface is exactly how I wanted it,
     # after the amount of handwringing I did, thinking argparse couldn't do it
     # at all.
@@ -312,7 +335,7 @@ def main(argv):
     document = parse_file(namespace.file)
 
     # Validate the document, add command implementations to the tree
-    validate(document, namespace.file, Plugin.__class__.PLUGINS)
+    validate(document, namespace.file, plugins)
 
     # Add the tags the user specified to the list of defined tags
     tags.update(namespace.tags)
