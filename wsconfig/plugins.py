@@ -179,6 +179,7 @@ class EnsureLinePlugin(Plugin):
     def impl(cls, arguments):
         filename, line =  arguments
         with open(filename, 'a+') as f:
+            f.seek(0)
             if not line in map(lambda s: s.rstrip('\n\r'), f.readlines()):
                 f.write('%s\n' % line)
 
