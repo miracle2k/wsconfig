@@ -44,6 +44,9 @@ def init_env():
     """
     tags = set()
 
+    # Base tags
+    tags.add("true")
+
     # os.name has a limited number of defined values, we can add it as is.
     # Per the docs: 'posix', 'nt', 'os2', 'ce', 'java', 'riscos'
     tags.add(os.name)
