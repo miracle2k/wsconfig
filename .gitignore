@@ -1,6 +1,6 @@
 *.pyc
 
-/BRANCH_TODO
+/LOCAL_TODO*
 /.idea/
 
 /build/
