@@ -71,6 +71,7 @@ def init_env():
 
     elif platform_system == 'Darwin':
         tags.add('darwin')
+        tags.add('osx')   # I'll assume we'll never run on pre-X
         tags.add('macos')
         release, info, machine = platform.mac_ver()
         if release:
