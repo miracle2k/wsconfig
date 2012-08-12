@@ -156,6 +156,43 @@ def test_match(expr, tags, sys_only=False):
         return (tag in tags) if required else (tag not in tags)
 
 
+def traverse_document(document, tags):
+    """Generator that will walk ``document`` and yield 2-tuples in
+    the form of (selector, command), for each selector or command
+    encountered.
+
+    Depending on the type of the current node one of the two values
+    will be ``None``
+
+    If ``tags`` is given, the generator will only follow selectors
+    which match the tags given, and will further pick up on any
+    ``define`` instructions encountered.
+    """
+    tags = tags.copy()
+
+    def recurse(parent):
+        for item in parent:
+            selector = item if isinstance(item, Selector) else None
+            command = item if isinstance(item, Command) else None
+
+            if command:
+                # Add the newly defined tags to the list, will have
+                # effect in subsequent code.
+                if command.argv[0] == 'define':
+                    tags.update(command.argv)
+                    continue
+
+            yield selector, command, tags
+
+            if selector:
+                if test_match(item.tagexpr.expr, tags):
+                    for value in  recurse(item.items):
+                        yield value
+
+    for value in recurse(document):
+        yield value
+
+
 def firstpass(document, init_tags):
     """Run the first pass over the ``document`` tree, as returned by the
     parser, assuming ``init_tags`` to be defined.
@@ -196,36 +233,22 @@ def firstpass(document, init_tags):
     """
     discovered_tags = set()
 
-    def search_items(items, tags):
-        for item in items:
-            # Look at all "define" commands
-            if isinstance(item, Command):
-                if item.argv[0] == 'define':
-                    tags.update(item.argv)
-                continue
+    for selector, command, tags in traverse_document(document, init_tags):
+        if not selector:
+            continue
+        # Find tags used in selectors, but not those that depend on a
+        # ``sys:*`` tag that is not set.
+        #
+        # We know that a tag expression is an OR of many ANDs, and further
+        # nesting is not possible. So simply check if any of the ANDs
+        # passes a check of it's ``sys`` conditions.
+        or_expr = selector.tagexpr.expr
+        for and_expr in or_expr.items:
+            if test_match(and_expr, tags, sys_only=True):
+                discovered_tags.update(
+                    {tag for _, tag in map(parse_tag, and_expr.items)
+                     if not tag.startswith('sys:') and not tag in tags})
 
-            if not isinstance(item, Selector):
-                continue
-
-            # Find tags used in selectors, but not those that depend on a
-            # ``sys:*`` tag that is not set.
-            #
-            # We know that a tag expression is an OR of many ANDs, and further
-            # nesting is not possible. So simply check if any of the ANDs
-            # passes a check of it's ``sys`` conditions.
-            or_expr = item.tagexpr.expr
-            for and_expr in or_expr.items:
-                if test_match(and_expr, tags, sys_only=True):
-                    discovered_tags.update(
-                        {tag for _, tag in map(parse_tag, and_expr.items)
-                         if not tag.startswith('sys:') and not tag in tags})
-
-            # Traverse if matching
-            if test_match(item.tagexpr.expr, tags):
-                search_items(item.items, tags)
-
-    # Be sure we don't modify the incoming set of tags
-    search_items(document, init_tags.copy())
     return discovered_tags
 
 
@@ -234,21 +257,15 @@ def apply_document(document, tags, state, dry_run=False):
 
     As the document is processed, runtime state can be kept in ``state``.
     """
-    for item in document:
-        if isinstance(item, Command):
-            # Hardcode the define behavior - add the newly defined tags
-            # to the list, will have effect in subsequent code.
-            if item.argv[0] == 'define':
-                tags.update(item.argv)
-                continue
-
+    for selector, command, tags in traverse_document(document, tags):
+        if command:
             if dry_run:
-                print item
+                print command
                 continue
 
             # Run the plugin
             try:
-                result = item.plugin.run(item.args, state)
+                result = command.plugin.run(command.args, state)
                 if result:
                     raise ApplyError('Plugin failed.')
             except ApplyError, e:
@@ -260,10 +277,6 @@ def apply_document(document, tags, state, dry_run=False):
                     if yn == 'n':
                         sys.exit(1)
                     break
-
-        elif isinstance(item, Selector):
-            if test_match(item.tagexpr.expr, tags):
-                apply_document(item.items, tags, state, dry_run)
 
 
 def main(argv):
