@@ -214,6 +214,11 @@ $
 dpkg
     Install dpkg packages on Debian-systems, using apt-get.
 
+brew
+    Installs a formula via homebrew; Preferred over the native command
+    because the latter returns an error code if the requested formula
+    is already installed.
+
 link
     Create a symbolic link. Both pathnames can be relative to the config
     file itself, wsconfig will properly construct the link target path.

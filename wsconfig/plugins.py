@@ -1,11 +1,15 @@
 import os
 from os import path
 from subprocess import Popen, list2cmdline
+import subprocess
 import sys
 
 
 class ApplyError(Exception):
-    pass
+    def __init__(self, message, process=None):
+        Exception.__init__(self, message)
+        self.returncode = process.returncode if process else None
+        self.process = process
 
 
 class Plugin(object):
@@ -53,7 +57,10 @@ class Plugin(object):
             raise ApplyError('Failed to run: %s' % e)
         process.wait()
         if process.returncode != 0:
-            raise ApplyError('Process returns non-zero code: %s' % process.returncode)
+            raise ApplyError(
+                'Process returns non-zero code: %s' % process.returncode,
+                process)
+        return process
 
     def execute_impl(self, arguments):
         """Subclasses should use this to run their own ``impl`` methods.
@@ -88,6 +95,39 @@ class DpkgPlugin(Plugin):
     def run(self, arguments, state):
         for package in arguments:
             self.execute_proc(['apt-get', 'install', '-y', package])
+
+
+class Homebrew(Plugin):
+    """Homebrew formula installation.
+
+    A command is required for this, because the ``brew`` executable
+    returns an error code if the package is already installed.
+    """
+
+    name = 'brew'
+
+    def run(self, arguments, state):
+        try:
+            # In order to check the output, we need to capture it,
+            # meaning it won't appear in the console. XXX Possible
+            # we can fix this via a wrapper that writes to multiple
+            # streams: http://stackoverflow.com/a/9130786
+            process = self.execute_proc(['brew', 'install'] + arguments,
+                stdout=subprocess.PIPE)
+        except ApplyError, e:
+            # If the package is already installed, brew returns
+            # a specific error code and message. Check for this,
+            # and ignore such errors, raise all others.
+            stdout = e.process.stdout.read()
+            if e.returncode != 1 or (
+               not 'already installed' in stdout):
+                raise
+            print stdout
+
+        else:
+            # Output what we captured, though this might be too late
+            # (if there was an error).
+            print process.stdout.read()
 
 
 class PipPlugin(Plugin):
