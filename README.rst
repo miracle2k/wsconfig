@@ -174,6 +174,73 @@ piped directly to the shell::
     $ su -c "apt-get update"
 
 
+Available commands
+------------------
+
+$
+    Execute something in the shell. These are not parsed like other commands -
+    instead, content is given to the shell as-is. A multiline shell syntax
+    is also supported::
+
+        $: set -e
+           FOO=bar
+           echo $FOO
+
+    Whitespace is significant here. After the colon, every line that is
+    indented at least as many characters as the position of the colon will
+    be considered part of the shell command. The first line with an indentation
+    level equal or lower than the column will be the next regular command::
+
+        $:
+              FOO=bar
+            echo $FOO
+         remind "This is no longer shell"
+
+dpkg
+    Install dpkg packages on Debian-systems, using apt-get.
+
+link
+    Create a symbolic link. Both pathnames can be relative to the config
+    file itself, wsconfig will properly construct the link target path.
+
+    The command will fail if the target file already exists with a different
+    link target than the one you wish to say. You can add an ``-f`` option
+    to force a link overwrite::
+
+        link -f virtualenvs/postmkvirtualenv ~/.virtualenvs/postmkvirtualenv
+
+mkdir
+    Creates a directory, if it does't exist yet.
+
+pip
+    Install a Python package using "pip". pip needs to be available.
+
+wine
+    Run a windows executable via wine.
+
+remind
+    Remind yourself of some manual setup step. These will be collected and
+    presented at the end of the script.
+
+ensure_line
+    Add a line to the given file, but only if it doesn't exist yet::
+
+        ensure_line ~/.bashrc "~/.bashrc_michael"
+
+
+
+Applying a config file:
+----------------------
+
+::
+
+    $ wsconfig my_config_file
+    Available choices:
+      Dev
+      Vm
+    $ wsconfig my_config_file apply Development
+
+
 Tagging in-depth
 ----------------
 
@@ -325,8 +392,8 @@ easy it can be worked around. If this fails validation::
         Dev {}
     }
 
-Then this would bypass it, but have the same effect (the Python tag being
-useless without the Dev tag)::
+Then the following would bypass it, but have the same effect (the Python
+tag being useless without the Dev tag)::
 
     Dev {
         python { noop }
@@ -335,73 +402,7 @@ useless without the Dev tag)::
 
 
 
-Available commands
-------------------
 
-$
-    Execute something in the shell. These are not parsed like other commands -
-    instead, content is given to the shell as-is. A multiline shell syntax
-    is also supported::
-
-        $: set -e
-           FOO=bar
-           echo $FOO
-
-    Whitespace is significant here. After the colon, every line that is
-    indented at least as many characters as the position of the colon will
-    be considered part of the shell command. The first line with an indentation
-    level equal or lower than the column will be the next regular command::
-
-        $:
-              FOO=bar
-            echo $FOO
-         remind "This is no longer shell"
-
-dpkg
-    Install dpkg packages on Debian-systems, using apt-get.
-
-link
-    Create a symbolic link. Both pathnames can be relative to the config
-    file itself, wsconfig will properly construct the link target path.
-
-    The command will fail if the target file already exists with a different
-    link target than the one you wish to say. You can add an ``-f`` option
-    to force a link overwrite::
-
-        link -f virtualenvs/postmkvirtualenv ~/.virtualenvs/postmkvirtualenv
-
-mkdir
-    Creates a directory, if it does't exist yet.
-
-pip
-    Install a Python package using "pip". pip needs to be available.
-
-wine
-    Run a windows executable via wine.
-
-remind
-    Remind yourself of some manual setup step. These will be collected and
-    presented at the end of the script.
-
-ensure_line
-    Add a line to the given file, but only if it doesn't exist yet::
-
-        ensure_line ~/.bashrc "~/.bashrc_michael"
-
-
-
-Applying a config file:
-----------------------
-
-::
-
-    $ wsconfig my_config_file
-    Available choices:
-      Dev
-      Vm
-    $ wsconfig my_config_file apply Development
-
-    
     
 Similar tools
 -------------
