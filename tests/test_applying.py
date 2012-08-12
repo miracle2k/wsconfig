@@ -5,7 +5,8 @@ from textwrap import dedent
 from nose.tools import assert_raises
 from wsconfig.parsing import parse_string
 from wsconfig.plugins import Plugin
-from wsconfig.script import firstpass, apply_document, validate, ConfigError
+from wsconfig.script import (
+    firstpass, find_variables, apply_document, validate, ConfigError)
 
 
 class TestValidation(object):
@@ -73,10 +74,38 @@ class TestFirstPass(object):
         assert self.process('foo { bar {} }\ndefine foo') == {'foo'}
 
 
+class TestPlugin(Plugin):
+    name = 'test'
+    def run(self, arguments, state):
+        pass
+
+
+class TestFindVariables(object):
+    """Test that variables are properly found (so the user may
+    be asked).
+    """
+
+    def find(self, text, tags=None):
+        document = parse_string(dedent(text))
+        validate(document, '', {'test': TestPlugin})
+        result = find_variables(document, tags or set())
+        print result
+        return result
+
+    def test_simple(self):
+        assert self.find('test @@foo@@ @@bar@@') == {'@@foo@@', '@@bar@@'}
+
+    def test_in_quotes(self):
+        assert self.find('test "@@foo@@"') == {'@@foo@@'}
+
+    def test_not_matching_selector(self):
+        assert self.find('abc { test "@@foo@@" }') == set()
+
+
 class TestApply(object):
     """Test that the right commands run."""
 
-    def apply(self, text, tags=None):
+    def apply(self, text, tags=None, vars=[]):
         # Dummy plugin
         class LogPlugin(Plugin):
             name = 'log'
@@ -86,7 +115,7 @@ class TestApply(object):
 
         document = parse_string(dedent(text))
         validate(document, '', {'log': LogPlugin})
-        apply_document(document, tags or set(), {})
+        apply_document(document, tags or set(), {'variables': vars})
         print LogPlugin.log
         return LogPlugin.log
 
@@ -127,4 +156,10 @@ class TestApply(object):
     def test_define(self):
         assert self.apply('define foo\nfoo { log 42 }', set()) == [['42']]
         assert self.apply('foo { log 42 }\ndefine foo', set()) == []
+
+    def test_variables(self):
+        """Test variables are being replaced."""
+        assert self.apply('log @@foo@@ @@bar@@', set(), vars={
+            '@@foo@@': '1', '@@bar@@': '2'
+        }) == [['1', '2']]
 

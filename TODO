@@ -13,9 +13,12 @@ Should be support some form of else?
         ...
     }
 
-Support describing tags that are offered as choices:
+Support describing tags that are offered as choice.
     choice Dev "Development bundle"
     choice VM "When running on a VM"
+However, we also need to be able to describe variables. Maybe call it "doc":
+    doc @@hostname@@ Hostname to set for this machine
+    doc Dev Development bundle
 
 Support tags that are set by default, but can be negated:
     defaults mysql

@@ -154,6 +154,21 @@ block of statements::
     }
 
 
+Variables
+---------
+
+Sometimes you want to use machine-specific values in the script; ``wsconfig``
+has a variable system that allows you to do this. You will be asked to provide
+values for all the variables used in the effective script (that is, you won't
+be bothered with variables that are only used in commands that won't run) at
+the start of an ``apply`` run.
+
+The syntax uses a double-@ notation::
+
+    $ sudo scutil --set ComputerName "@@hostname@@"
+
+Variables are case-sensitive.
+
 
 Root usage
 ----------

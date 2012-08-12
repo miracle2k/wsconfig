@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys, os
+import re
 import platform
 from os import path
 import argparse
@@ -252,20 +253,48 @@ def firstpass(document, init_tags):
     return discovered_tags
 
 
+variable_re = re.compile(r'(@@[\w]+@@)')
+
+def find_variables(document, tags):
+    """Find all the variables (%%var%% syntax) used in the document,
+    given the particular set of tags, return a set of all vars found.
+    """
+    vars_found = set()
+    for selector, command, tags in traverse_document(document, tags):
+        if not command:
+            continue
+
+        for arg in command.args:
+            matches = variable_re.findall(arg)
+            vars_found |= set(matches)
+
+    return vars_found
+
+
 def apply_document(document, tags, state, dry_run=False):
     """Run all the commands in ``document``, filtered by ``tags``.
 
-    As the document is processed, runtime state can be kept in ``state``.
+    As the document is processed, runtime state can be kept
+    in ``state``.
     """
+    def var_replacer(match):
+        return state['variables'][match.groups()[0]]
+
     for selector, command, tags in traverse_document(document, tags):
         if command:
+            # Replace variables in the arguments
+            args = [
+                re.sub(variable_re, var_replacer, arg)
+                for arg in command.args
+            ]
+
             if dry_run:
                 print command
                 continue
 
             # Run the plugin
             try:
-                result = command.plugin.run(command.args, state)
+                result = command.plugin.run(args, state)
                 if result:
                     raise ApplyError('Plugin failed.')
             except ApplyError, e:
@@ -370,8 +399,19 @@ def main(argv):
                 print '  %s' % tag
         return 0
 
+    # With the tags we are to use at hand, find the variables that will
+    # be required, and let the user provide a value before starting a
+    # process that ideally could run unattended.
+    initialized_variables = {}
+    used_variables = find_variables(document, tags)
+    if used_variables:
+        print "Please provide some values:"
+        for var in used_variables:
+            value = raw_input("  %s " % var)
+            initialized_variables[var] = value
+
     # Actually run all commands
-    state = {'post_apply': []}
+    state = {'post_apply': [], 'variables': initialized_variables}
     apply_document(document, tags, state, dry_run=namespace.dry_run)
 
     # Execute post apply handlers. Commands like ``remind`` set those up.
